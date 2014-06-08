@@ -9,6 +9,7 @@ module nml
 
     interface nml_read 
         module procedure nml_read_string, nml_read_double, nml_read_float 
+        module procedure nml_read_integer, nml_read_logical
     end interface 
 
     interface nml_write
@@ -17,6 +18,7 @@ module nml
 
     interface nml_print 
         module procedure nml_print_string, nml_print_double, nml_print_float  
+        module procedure nml_print_integer, nml_print_logical
     end interface 
 
     private 
@@ -35,7 +37,7 @@ contains
     ! This is the basic nml reading subroutine
     ! All interfaces use this to read the parameter, then it
     ! is converted to the correct type
-    subroutine nml_read_string(filename,group,name,value,comment)
+    subroutine nml_read_internal(filename,group,name,value,comment)
 
         implicit none 
 
@@ -47,7 +49,7 @@ contains
         integer :: iostat, l, ltype 
         character(len=1000) :: line, name1, value1, comment1 
 
-        logical :: ingroup 
+        logical :: ingroup  
 
         ! Open the nml filename to be read 
         open(io,file=filename,status="old",iostat=iostat)
@@ -76,11 +78,37 @@ contains
             if (ltype == 1 .and. trim(name1) == trim(group)) ingroup = .TRUE. 
             if (ltype == 2)                                  ingroup = .FALSE. 
 
+            if (l .eq. 5000) then 
+                write(*,*) "nml:: Warning: maximum nml length of 5000 lines reached."
+            end if 
         end do 
+
+        close(io)
+        
+        return 
+
+    end subroutine nml_read_internal
+
+    subroutine nml_read_string(filename,group,name,value,comment)
+
+        implicit none 
+
+        character(len=*), intent(INOUT) :: value 
+        character(len=*), intent(IN)    :: filename, group, name 
+        character(len=*), intent(INOUT), optional :: comment   
+        character(len=256) :: value_str 
+
+        ! First find parameter value as a string 
+        value_str = ""
+        call nml_read_internal(filename,group,name,value_str,comment)
+
+        if (value_str /= "") value = trim(value_str)
+
+        call nml_print(name,value,comment)  ! Check
 
         return 
 
-    end subroutine nml_read_string
+    end subroutine nml_read_string 
 
     subroutine nml_read_double(filename,group,name,value,comment)
 
@@ -93,11 +121,11 @@ contains
 
         ! First find parameter value as a string 
         value_str = ""
-        call nml_read_string(filename,group,name,value_str,comment)
+        call nml_read_internal(filename,group,name,value_str,comment)
 
-        if (value_str /= "") then 
-            value = string_to_double(value_str)
-        end if 
+        if (value_str /= "") value = string_to_double(value_str)
+
+        call nml_print(name,value,comment)  ! Check
 
         return 
 
@@ -114,15 +142,58 @@ contains
 
         ! First find parameter value as a string 
         value_str = ""
-        call nml_read_string(filename,group,name,value_str,comment)
+        call nml_read_internal(filename,group,name,value_str,comment)
 
-        if (value_str /= "") then 
-            value = real(string_to_double(value_str))
-        end if 
+        if (value_str /= "") value = real(string_to_double(value_str))
+
+        call nml_print(name,value,comment)  ! Check
 
         return 
 
     end subroutine nml_read_float 
+
+    subroutine nml_read_integer(filename,group,name,value,comment)
+
+        implicit none 
+
+        integer, intent(INOUT) :: value 
+        character(len=*), intent(IN)    :: filename, group, name 
+        character(len=*), intent(INOUT), optional :: comment   
+        character(len=256) :: value_str 
+
+        ! First find parameter value as a string 
+        value_str = ""
+        call nml_read_internal(filename,group,name,value_str,comment)
+
+        if (value_str /= "") then 
+            value = nint(string_to_double(value_str))
+        end if 
+
+        call nml_print(name,value,comment)  ! Check
+
+        return 
+
+    end subroutine nml_read_integer
+
+    subroutine nml_read_logical(filename,group,name,value,comment)
+
+        implicit none 
+
+        logical, intent(INOUT) :: value 
+        character(len=*), intent(IN)    :: filename, group, name 
+        character(len=*), intent(INOUT), optional :: comment   
+        character(len=256) :: value_str 
+
+        ! First find parameter value as a string 
+        value_str = ""
+        call nml_read_internal(filename,group,name,value_str,comment)
+        if (value_str /= "") value = string_to_logical(value_str)
+
+        call nml_print(name,value,comment)  ! Check
+
+        return 
+
+    end subroutine nml_read_logical 
 
     ! =============================================================
     !
@@ -185,7 +256,7 @@ contains
         integer, optional :: io 
         character(len=500) :: value_str  
 
-        write(value_str,"(g15.3)") value 
+        write(value_str,*) value 
         call nml_print_string(name,value_str,comment,io)
 
         return 
@@ -201,12 +272,45 @@ contains
         integer, optional :: io 
         character(len=500) :: value_str  
 
-        write(value_str,"(g15.3)") value 
+        write(value_str,*) value 
         call nml_print_string(name,value_str,comment,io)
 
         return 
 
     end subroutine nml_print_float
+    
+    subroutine nml_print_integer(name,value,comment,io)
+
+        implicit none 
+        integer :: value
+        character(len=*) :: name 
+        character(len=*), optional :: comment
+        integer, optional :: io 
+        character(len=500) :: value_str  
+
+        write(value_str,*) value 
+        call nml_print_string(name,value_str,comment,io)
+
+        return 
+
+    end subroutine nml_print_integer
+
+    subroutine nml_print_logical(name,value,comment,io)
+
+        implicit none 
+        logical :: value
+        character(len=*) :: name 
+        character(len=*), optional :: comment
+        integer, optional :: io 
+        character(len=500) :: value_str  
+
+        value_str = "F"
+        if (value) value_str = "T" 
+        call nml_print_string(name,value_str,comment,io)
+
+        return 
+
+    end subroutine nml_print_logical
     
 
 
@@ -249,6 +353,33 @@ contains
         return 
 
     end function string_to_double
+
+    function string_to_logical(string) result(value)
+
+        implicit none 
+
+        character(len=*), intent(IN) :: string 
+        logical :: value 
+
+        character(len=100) :: tmpstr 
+        integer :: stat, n
+        double precision :: x 
+
+        tmpstr = trim(adjustl(string))
+        
+        select case(trim(tmpstr))
+            case("T","True","TRUE","true",".TRUE.")
+                value = .TRUE. 
+            case("F","False","FALSE","false",".FALSE.")
+                value = .FALSE. 
+            case DEFAULT
+                write(*,*) "nml:: Error reading logical parameter."
+                stop 
+        end select  
+
+        return 
+
+    end function string_to_logical
 
     ! =============================================================
     !
