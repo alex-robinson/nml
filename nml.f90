@@ -10,6 +10,8 @@ module nml
     interface nml_read 
         module procedure nml_read_string, nml_read_double, nml_read_float 
         module procedure nml_read_integer, nml_read_logical
+        module procedure nml_read_string_vector, nml_read_double_vector
+        module procedure nml_read_float_vector, nml_read_integer_vector
     end interface 
 
     interface nml_write
@@ -19,6 +21,8 @@ module nml
     interface nml_print 
         module procedure nml_print_string, nml_print_double, nml_print_float  
         module procedure nml_print_integer, nml_print_logical
+        module procedure nml_print_string_vector, nml_print_double_vector
+        module procedure nml_print_float_vector, nml_print_integer_vector
     end interface 
 
     private 
@@ -84,19 +88,25 @@ contains
         end do 
 
         close(io)
-        
+
         return 
 
     end subroutine nml_read_internal
 
-    subroutine nml_read_string(filename,group,name,value,comment)
+    subroutine nml_read_string(filename,group,name,value,comment,init)
 
         implicit none 
 
         character(len=*), intent(INOUT) :: value 
         character(len=*), intent(IN)    :: filename, group, name 
-        character(len=*), intent(INOUT), optional :: comment   
+        character(len=*), intent(INOUT), optional :: comment 
+        logical, optional :: init  
+        logical :: init_var 
         character(len=256) :: value_str 
+
+        init_var = .FALSE. 
+        if (present(init)) init_var = init 
+        if (init_var) value = "" 
 
         ! First find parameter value as a string 
         value_str = ""
@@ -110,19 +120,24 @@ contains
 
     end subroutine nml_read_string 
 
-    subroutine nml_read_double(filename,group,name,value,comment)
+    subroutine nml_read_double(filename,group,name,value,comment,init)
 
         implicit none 
 
         double precision, intent(INOUT) :: value 
         character(len=*), intent(IN)    :: filename, group, name 
         character(len=*), intent(INOUT), optional :: comment   
+        logical, optional :: init  
+        logical :: init_var 
         character(len=256) :: value_str 
+
+        init_var = .FALSE. 
+        if (present(init)) init_var = init 
+        if (init_var) value = 0.d0 
 
         ! First find parameter value as a string 
         value_str = ""
         call nml_read_internal(filename,group,name,value_str,comment)
-
         if (value_str /= "") value = string_to_double(value_str)
 
         call nml_print(name,value,comment)  ! Check
@@ -131,19 +146,24 @@ contains
 
     end subroutine nml_read_double 
 
-    subroutine nml_read_float(filename,group,name,value,comment)
+    subroutine nml_read_float(filename,group,name,value,comment,init)
 
         implicit none 
 
         real(4), intent(INOUT) :: value 
         character(len=*), intent(IN)    :: filename, group, name 
-        character(len=*), intent(INOUT), optional :: comment   
+        character(len=*), intent(INOUT), optional :: comment  
+        logical, optional :: init  
+        logical :: init_var  
         character(len=256) :: value_str 
+
+        init_var = .FALSE. 
+        if (present(init)) init_var = init 
+        if (init_var) value = 0.0 
 
         ! First find parameter value as a string 
         value_str = ""
         call nml_read_internal(filename,group,name,value_str,comment)
-
         if (value_str /= "") value = real(string_to_double(value_str))
 
         call nml_print(name,value,comment)  ! Check
@@ -152,14 +172,20 @@ contains
 
     end subroutine nml_read_float 
 
-    subroutine nml_read_integer(filename,group,name,value,comment)
+    subroutine nml_read_integer(filename,group,name,value,comment,init)
 
         implicit none 
 
         integer, intent(INOUT) :: value 
         character(len=*), intent(IN)    :: filename, group, name 
-        character(len=*), intent(INOUT), optional :: comment   
+        character(len=*), intent(INOUT), optional :: comment 
+        logical, optional :: init  
+        logical :: init_var   
         character(len=256) :: value_str 
+
+        init_var = .FALSE. 
+        if (present(init)) init_var = init 
+        if (init_var) value = 0 
 
         ! First find parameter value as a string 
         value_str = ""
@@ -175,14 +201,20 @@ contains
 
     end subroutine nml_read_integer
 
-    subroutine nml_read_logical(filename,group,name,value,comment)
+    subroutine nml_read_logical(filename,group,name,value,comment,init)
 
         implicit none 
 
         logical, intent(INOUT) :: value 
         character(len=*), intent(IN)    :: filename, group, name 
-        character(len=*), intent(INOUT), optional :: comment   
+        character(len=*), intent(INOUT), optional :: comment 
+        logical, optional :: init  
+        logical :: init_var   
         character(len=256) :: value_str 
+
+        init_var = .FALSE. 
+        if (present(init)) init_var = init 
+        if (init_var) value = .FALSE. 
 
         ! First find parameter value as a string 
         value_str = ""
@@ -195,6 +227,142 @@ contains
 
     end subroutine nml_read_logical 
 
+    !! Vectors 
+
+    subroutine nml_read_string_vector(filename,group,name,value,comment,init)
+
+        implicit none 
+
+        character(len=*), intent(INOUT) :: value(:) 
+        character(len=*), intent(IN)    :: filename, group, name 
+        character(len=*), intent(INOUT), optional :: comment 
+        logical, optional :: init  
+        logical :: init_var  
+        character(len=256) :: value_str 
+
+        init_var = .FALSE. 
+        if (present(init)) init_var = init 
+        if (init_var) value(:) = "" 
+
+        ! First find parameter value as a string 
+        value_str = ""
+        call nml_read_internal(filename,group,name,value_str,comment)
+
+        if (value_str /= "") call string_to_vector(value_str,value)
+
+        call nml_print(name,value,comment)  ! Check
+
+        return 
+
+    end subroutine nml_read_string_vector 
+
+    subroutine nml_read_double_vector(filename,group,name,value,comment,init)
+
+        implicit none 
+
+        double precision, intent(INOUT) :: value(:) 
+        character(len=*), intent(IN)    :: filename, group, name 
+        character(len=*), intent(INOUT), optional :: comment   
+        character(len=256) :: value_str, value_str_vec(size(value))
+        logical, optional :: init  
+        logical :: init_var  
+        integer :: q 
+
+        init_var = .FALSE. 
+        if (present(init)) init_var = init 
+        if (init_var) value(:) = 0.d0
+
+        ! First find parameter value as a string 
+        value_str = ""
+        call nml_read_internal(filename,group,name,value_str,comment)
+
+        if (value_str /= "") then
+            call string_to_vector(value_str,value_str_vec)
+            do q = 1, size(value)
+                if (trim(value_str_vec(q)) /= "") then 
+                    value(q) = string_to_double(trim(adjustl(value_str_vec(q))))
+                end if 
+
+            end do 
+        end if 
+
+        call nml_print(name,value,comment)  ! Check
+
+        return 
+
+    end subroutine nml_read_double_vector 
+
+    subroutine nml_read_float_vector(filename,group,name,value,comment,init)
+
+        implicit none 
+
+        real(4), intent(INOUT) :: value(:) 
+        character(len=*), intent(IN)    :: filename, group, name 
+        character(len=*), intent(INOUT), optional :: comment   
+        character(len=256) :: value_str, value_str_vec(size(value)) 
+        logical, optional :: init  
+        logical :: init_var
+        integer :: q 
+
+        init_var = .FALSE. 
+        if (present(init)) init_var = init 
+        if (init_var) value(:) = 0.0
+
+        ! First find parameter value as a string 
+        value_str = ""
+        call nml_read_internal(filename,group,name,value_str,comment)
+
+        if (value_str /= "") then
+            call string_to_vector(value_str,value_str_vec)
+            do q = 1, size(value)
+                if (trim(value_str_vec(q)) /= "") then 
+                    value(q) = real(string_to_double(trim(adjustl(value_str_vec(q)))))
+                end if 
+
+            end do 
+        end if 
+
+        call nml_print(name,value,comment)  ! Check
+
+        return 
+
+    end subroutine nml_read_float_vector 
+
+    subroutine nml_read_integer_vector(filename,group,name,value,comment,init)
+
+        implicit none 
+
+        integer, intent(INOUT) :: value(:) 
+        character(len=*), intent(IN)    :: filename, group, name 
+        character(len=*), intent(INOUT), optional :: comment   
+        character(len=256) :: value_str, value_str_vec(size(value))
+        logical, optional :: init  
+        logical :: init_var 
+        integer :: q 
+
+        init_var = .FALSE. 
+        if (present(init)) init_var = init 
+        if (init_var) value(:) = 0
+
+        ! First find parameter value as a string 
+        value_str = ""
+        call nml_read_internal(filename,group,name,value_str,comment)
+
+        if (value_str /= "") then
+            call string_to_vector(value_str,value_str_vec)
+            do q = 1, size(value)
+                if (trim(value_str_vec(q)) /= "") then 
+                    value(q) = nint(string_to_double(trim(adjustl(value_str_vec(q)))))
+                end if 
+
+            end do 
+        end if 
+
+        call nml_print(name,value,comment)  ! Check
+
+        return 
+
+    end subroutine nml_read_integer_vector
     ! =============================================================
     !
     ! nml parameter writing functions
@@ -312,7 +480,92 @@ contains
 
     end subroutine nml_print_logical
     
+    !! Vectors
 
+    subroutine nml_print_string_vector(name,value,comment,io)
+
+        implicit none 
+        character(len=*) :: value(:)
+        character(len=*) :: name 
+        character(len=*), optional :: comment
+        integer, optional :: io 
+        character(len=500) :: value_str  
+        integer :: q 
+
+        value_str = value(1)
+        do q = 2, size(value)
+            write(value_str,*) trim(value_str)//" "//trim(value(q))
+        end do 
+
+        call nml_print_string(name,value_str,comment,io)
+
+        return 
+
+    end subroutine nml_print_string_vector
+    
+    subroutine nml_print_double_vector(name,value,comment,io)
+
+        implicit none 
+        double precision :: value(:)
+        character(len=*) :: name 
+        character(len=*), optional :: comment
+        integer, optional :: io 
+        character(len=500) :: value_str  
+        integer :: q 
+
+        value_str = ""
+        do q = 1, size(value)
+            write(value_str,"(a,g12.3)") trim(value_str)//" ",value(q)
+        end do 
+
+        call nml_print_string(name,value_str,comment,io)
+
+        return 
+
+    end subroutine nml_print_double_vector
+    
+    subroutine nml_print_float_vector(name,value,comment,io)
+
+        implicit none 
+        real(4) :: value(:)
+        character(len=*) :: name 
+        character(len=*), optional :: comment
+        integer, optional :: io 
+        character(len=500) :: value_str  
+        integer :: q 
+
+        value_str = ""
+        do q = 1, size(value)
+            write(value_str,"(a,g12.3)") trim(value_str)//" ",value(q)
+        end do 
+
+        call nml_print_string(name,value_str,comment,io)
+
+        return 
+
+    end subroutine nml_print_float_vector
+    
+    subroutine nml_print_integer_vector(name,value,comment,io)
+
+        implicit none 
+        integer :: value(:)
+        character(len=*) :: name 
+        character(len=*), optional :: comment
+        integer, optional :: io 
+        character(len=500) :: value_str  
+        integer :: q 
+
+        value_str = ""
+        do q = 1, size(value)
+            write(value_str,"(a,i12)") trim(value_str)//" ",value(q)
+        end do 
+
+        call nml_print_string(name,value_str,comment,io)
+
+        return 
+
+    end subroutine nml_print_integer_vector
+    
 
     ! =============================================================
     !
@@ -327,7 +580,7 @@ contains
         character(len=*), intent(IN) :: string 
         double precision :: value 
 
-        character(len=100) :: tmpstr 
+        character(len=256) :: tmpstr 
         integer :: stat, n
         double precision :: x 
 
@@ -361,7 +614,7 @@ contains
         character(len=*), intent(IN) :: string 
         logical :: value 
 
-        character(len=100) :: tmpstr 
+        character(len=256) :: tmpstr 
         integer :: stat, n
         double precision :: x 
 
@@ -380,6 +633,45 @@ contains
         return 
 
     end function string_to_logical
+
+    subroutine string_to_vector(string,value)
+
+        implicit none 
+
+        character(len=*), intent(IN) :: string 
+        character(len=*) :: value(:)
+        character(len=256) :: tmpvec(size(value))
+        character(len=256) :: tmpstr, fmt 
+        integer :: stat, n, q, q1, q2
+
+        tmpstr = trim(adjustl(string))
+        n      = len_trim(tmpstr)+2
+
+        tmpvec(:) = "" 
+
+        q1 = 1 
+        do q = 1, size(tmpvec)
+            q2 = index(tmpstr(q1:n)," ") + q1
+            if (q2 .gt. q1 .and. q2 .le. n) then 
+                tmpvec(q) = tmpstr(q1:q2-1)
+                q1 = q2
+
+!                 ! Eliminate quotes
+!                 q2 = len_trim(tmpvec(q))
+!                 if (tmpvec(q)(1:1) == '"') tmpvec(q) = trim(adjustl(tmpvec(q)(2:q2)))
+!                 q2 = len_trim(tmpvec(q))
+!                 if (tmpvec(q)(q2:q2) == '"') tmpvec(q) = trim(tmpvec(q)(1:q2-1))
+                ! Remove quotes around string if they exist 
+                call remove_quotes(tmpvec(q))
+            
+            end if 
+        end do 
+        
+        value = tmpvec 
+
+        return 
+
+    end subroutine string_to_vector
 
     ! =============================================================
     !
@@ -443,11 +735,33 @@ contains
                 value   = trim(adjustl(line1(q+1:q2)))
             end if 
 
+            ! Remove quotes around string if they exist 
+            call remove_quotes(value)
+
         end if 
 
         return 
 
     end subroutine parse_line 
+
+    subroutine remove_quotes(string)
+
+        implicit none 
+        character(len=*), intent(INOUT) :: string 
+        integer :: n 
+
+        ! Eliminate quotes
+        n = len_trim(string)
+        if (n > 0) then 
+            if (string(1:1) == '"') string = trim(adjustl(string(2:n)))
+            n = len_trim(string)
+            if (string(n:n) == '"') string = trim(string(1:n-1))
+        end if 
+
+        return 
+
+    end subroutine remove_quotes
+
 
 end module nml 
 
