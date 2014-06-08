@@ -12,6 +12,7 @@ module nml
         module procedure nml_read_integer, nml_read_logical
         module procedure nml_read_string_vector, nml_read_double_vector
         module procedure nml_read_float_vector, nml_read_integer_vector
+        module procedure nml_read_logical_vector
     end interface 
 
     interface nml_write
@@ -23,6 +24,7 @@ module nml
         module procedure nml_print_integer, nml_print_logical
         module procedure nml_print_string_vector, nml_print_double_vector
         module procedure nml_print_float_vector, nml_print_integer_vector
+        module procedure nml_print_logical_vector
     end interface 
 
     private 
@@ -363,6 +365,43 @@ contains
         return 
 
     end subroutine nml_read_integer_vector
+
+    subroutine nml_read_logical_vector(filename,group,name,value,comment,init)
+
+        implicit none 
+
+        logical, intent(INOUT) :: value(:) 
+        character(len=*), intent(IN)    :: filename, group, name 
+        character(len=*), intent(INOUT), optional :: comment   
+        character(len=256) :: value_str, value_str_vec(size(value))
+        logical, optional :: init  
+        logical :: init_var 
+        integer :: q 
+
+        init_var = .FALSE. 
+        if (present(init)) init_var = init 
+        if (init_var) value(:) = 0
+
+        ! First find parameter value as a string 
+        value_str = ""
+        call nml_read_internal(filename,group,name,value_str,comment)
+
+        if (value_str /= "") then
+            call string_to_vector(value_str,value_str_vec)
+            do q = 1, size(value)
+                if (trim(value_str_vec(q)) /= "") then 
+                    value(q) = string_to_logical(trim(adjustl(value_str_vec(q))))
+                end if 
+
+            end do 
+        end if 
+
+        call nml_print(name,value,comment)  ! Check
+
+        return 
+
+    end subroutine nml_read_logical_vector
+
     ! =============================================================
     !
     ! nml parameter writing functions
@@ -565,6 +604,31 @@ contains
         return 
 
     end subroutine nml_print_integer_vector
+    
+    subroutine nml_print_logical_vector(name,value,comment,io)
+
+        implicit none 
+        logical :: value(:)
+        character(len=*) :: name 
+        character(len=*), optional :: comment
+        integer, optional :: io 
+        character(len=500) :: value_str  
+        integer :: q 
+
+        value_str = ""
+        do q = 1, size(value)
+            if (value(q)) then 
+                write(value_str,"(a,a1)") trim(value_str)//" ","T"
+            else
+                write(value_str,"(a,a1)") trim(value_str)//" ","F"
+            end if 
+        end do 
+
+        call nml_print_string(name,value_str,comment,io)
+
+        return 
+
+    end subroutine nml_print_logical_vector
     
 
     ! =============================================================

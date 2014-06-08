@@ -18,6 +18,7 @@ program test
         integer :: integer1, integer2, intarr1(10)
         double precision :: double1
         double precision :: dblarr1(6)
+        logical :: logarr1(5)
     end type 
 
     type(pars_group1) :: group1 
@@ -45,7 +46,9 @@ program test
     call nml_read(filename,"group2","intarr1",group2%intarr1,init=.TRUE.)
     call nml_read(filename,"group2","double1",group2%double1)
     call nml_read(filename,"group2","dblarr1",group2%dblarr1)
+    call nml_read(filename,"group2","logarr1",group2%logarr1)
     
+
 
     return 
 
