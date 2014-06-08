@@ -706,7 +706,7 @@ contains
         character(len=*) :: value(:)
         character(len=256) :: tmpvec(size(value))
         character(len=256) :: tmpstr, fmt 
-        integer :: stat, n, q, q1, q2
+        integer :: stat, n, q, q1, q2, j 
 
         tmpstr = trim(adjustl(string))
         n      = len_trim(tmpstr)+2
@@ -719,6 +719,12 @@ contains
             if (q2 .gt. q1 .and. q2 .le. n) then 
                 tmpvec(q) = tmpstr(q1:q2-1)
                 q1 = q2
+
+                ! Make sure gaps of more than one space are properly handled
+                do j = 1, 1000
+                    if (tmpstr(q1:q1) == " ") q1 = q1+1
+                    if (q1 .ge. n) exit 
+                end do 
 
 !                 ! Eliminate quotes
 !                 q2 = len_trim(tmpvec(q))
