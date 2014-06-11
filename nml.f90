@@ -380,7 +380,7 @@ contains
 
         init_var = .FALSE. 
         if (present(init)) init_var = init 
-        if (init_var) value(:) = 0
+        if (init_var) value(:) = .FALSE.
 
         ! First find parameter value as a string 
         value_str = ""
