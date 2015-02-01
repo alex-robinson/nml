@@ -732,7 +732,7 @@ contains
 !                 q2 = len_trim(tmpvec(q))
 !                 if (tmpvec(q)(q2:q2) == '"') tmpvec(q) = trim(tmpvec(q)(1:q2-1))
                 ! Remove quotes around string if they exist 
-                call remove_quotes(tmpvec(q))
+                call remove_quotes_comma(tmpvec(q))
             
             end if 
         end do 
@@ -805,8 +805,8 @@ contains
                 value   = trim(adjustl(line1(q+1:q2)))
             end if 
 
-            ! Remove quotes around string if they exist 
-            call remove_quotes(value)
+            ! Remove quotes around string, and final line comma, if they exist
+            call remove_quotes_comma(value)
 
         end if 
 
@@ -814,23 +814,41 @@ contains
 
     end subroutine parse_line 
 
-    subroutine remove_quotes(string)
+    subroutine remove_quotes_comma(string)
 
         implicit none 
         character(len=*), intent(INOUT) :: string 
-        integer :: n 
+        integer :: i, n 
+
+!         ! Eliminate quotes
+!         n = len_trim(string)
+!         if (n == 1 .and. trim(string) == '"') then 
+!             string = ""
+!         else if (n > 0) then 
+!             if (string(1:1) == '"') string = trim(adjustl(string(2:n)))
+!             n = len_trim(string)
+!             if (n > 1  .and. string(n:n) == '"') string = trim(string(1:n-1))
+!             if (n == 1 .and. string(n:n) == '"') string = ""
+            
+!         end if 
 
         ! Eliminate quotes
         n = len_trim(string)
-        if (n > 0) then 
-            if (string(1:1) == '"') string = trim(adjustl(string(2:n)))
-            n = len_trim(string)
-            if (string(n:n) == '"') string = trim(string(1:n-1))
-        end if 
+        do i = 1,n 
+            if (string(i:i) == '"' .or. string(i:i) == "'") string(i:i) = " "
+        end do 
+        string = trim(adjustl(string))
 
+        ! Remove final comma too
+        n = len_trim(string)
+        if (n > 0) then 
+            if (string(n:n) == ",") string(n:n) = " "
+            string = trim(adjustl(string))
+        end if 
+        
         return 
 
-    end subroutine remove_quotes
+    end subroutine remove_quotes_comma
 
 
 end module nml 
