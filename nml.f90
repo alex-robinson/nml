@@ -43,31 +43,36 @@ contains
     ! This is the basic nml reading subroutine
     ! All interfaces use this to read the parameter, then it
     ! is converted to the correct type
-    subroutine nml_read_internal(filename,group,name,value,comment)
+    subroutine nml_read_internal(filename,group,name,value,comment,io)
 
         implicit none 
 
         character(len=*), intent(INOUT) :: value 
         character(len=*), intent(IN)    :: filename, group, name 
         character(len=*), intent(INOUT), optional :: comment   
+        integer, intent(IN), optional :: io
 
-        integer, parameter :: io = 188
+        integer :: io_loc = 188
         integer :: iostat, l, ltype 
         character(len=1000) :: line, name1, value1, comment1 
 
         logical :: ingroup  
 
         ! Open the nml filename to be read 
-        open(io,file=filename,status="old",iostat=iostat)
-        if (iostat /= 0) then 
-            write(*,*) "nml:: namelist file could not be opened: "//trim(filename)
-            stop 
-        end if 
+        if (.not.present(io)) then
+          open(io_loc,file=filename,status="old",iostat=iostat)
+          if (iostat /= 0) then 
+              write(*,*) "nml:: namelist file could not be opened: "//trim(filename)
+              stop 
+          end if 
+        else
+          io_loc = io
+        endif
 
         ingroup = .FALSE. 
 
         do l = 1, 5000
-            read(io,"(a1000)",iostat=iostat) line 
+            read(io_loc,"(a1000)",iostat=iostat) line 
             if (iostat /= 0) exit 
             call parse_line(line, ltype, name1, value1, comment1 )
 
@@ -89,13 +94,15 @@ contains
             end if 
         end do 
 
-        close(io)
+        if (.not.present(io)) then
+          close(io_loc)
+        endif
 
         return 
 
     end subroutine nml_read_internal
 
-    subroutine nml_read_string(filename,group,name,value,comment,init)
+    subroutine nml_read_string(filename,group,name,value,comment,init,io)
 
         implicit none 
 
@@ -105,6 +112,7 @@ contains
         logical, optional :: init  
         logical :: init_var 
         character(len=256) :: value_str 
+        integer, intent(IN), optional :: io
 
         init_var = .FALSE. 
         if (present(init)) init_var = init 
@@ -112,7 +120,7 @@ contains
 
         ! First find parameter value as a string 
         value_str = ""
-        call nml_read_internal(filename,group,name,value_str,comment)
+        call nml_read_internal(filename,group,name,value_str,comment,io)
 
         if (value_str /= "") value = trim(value_str)
 
@@ -122,7 +130,7 @@ contains
 
     end subroutine nml_read_string 
 
-    subroutine nml_read_double(filename,group,name,value,comment,init)
+    subroutine nml_read_double(filename,group,name,value,comment,init,io)
 
         implicit none 
 
@@ -132,6 +140,7 @@ contains
         logical, optional :: init  
         logical :: init_var 
         character(len=256) :: value_str 
+        integer, intent(IN), optional :: io
 
         init_var = .FALSE. 
         if (present(init)) init_var = init 
@@ -139,7 +148,7 @@ contains
 
         ! First find parameter value as a string 
         value_str = ""
-        call nml_read_internal(filename,group,name,value_str,comment)
+        call nml_read_internal(filename,group,name,value_str,comment,io)
         if (value_str /= "") value = string_to_double(value_str)
 
         call nml_print(name,value,comment)  ! Check
@@ -148,7 +157,7 @@ contains
 
     end subroutine nml_read_double 
 
-    subroutine nml_read_float(filename,group,name,value,comment,init)
+    subroutine nml_read_float(filename,group,name,value,comment,init,io)
 
         implicit none 
 
@@ -158,6 +167,7 @@ contains
         logical, optional :: init  
         logical :: init_var  
         character(len=256) :: value_str 
+        integer, intent(IN), optional :: io
 
         init_var = .FALSE. 
         if (present(init)) init_var = init 
@@ -165,7 +175,7 @@ contains
 
         ! First find parameter value as a string 
         value_str = ""
-        call nml_read_internal(filename,group,name,value_str,comment)
+        call nml_read_internal(filename,group,name,value_str,comment,io)
         if (value_str /= "") value = real(string_to_double(value_str))
 
         call nml_print(name,value,comment)  ! Check
@@ -174,7 +184,7 @@ contains
 
     end subroutine nml_read_float 
 
-    subroutine nml_read_integer(filename,group,name,value,comment,init)
+    subroutine nml_read_integer(filename,group,name,value,comment,init,io)
 
         implicit none 
 
@@ -184,6 +194,7 @@ contains
         logical, optional :: init  
         logical :: init_var   
         character(len=256) :: value_str 
+        integer, intent(IN), optional :: io
 
         init_var = .FALSE. 
         if (present(init)) init_var = init 
@@ -191,7 +202,7 @@ contains
 
         ! First find parameter value as a string 
         value_str = ""
-        call nml_read_internal(filename,group,name,value_str,comment)
+        call nml_read_internal(filename,group,name,value_str,comment,io)
 
         if (value_str /= "") then 
             value = nint(string_to_double(value_str))
@@ -203,7 +214,7 @@ contains
 
     end subroutine nml_read_integer
 
-    subroutine nml_read_logical(filename,group,name,value,comment,init)
+    subroutine nml_read_logical(filename,group,name,value,comment,init,io)
 
         implicit none 
 
@@ -213,6 +224,7 @@ contains
         logical, optional :: init  
         logical :: init_var   
         character(len=256) :: value_str 
+        integer, intent(IN), optional :: io
 
         init_var = .FALSE. 
         if (present(init)) init_var = init 
@@ -220,7 +232,7 @@ contains
 
         ! First find parameter value as a string 
         value_str = ""
-        call nml_read_internal(filename,group,name,value_str,comment)
+        call nml_read_internal(filename,group,name,value_str,comment,io)
         if (value_str /= "") value = string_to_logical(value_str)
 
         call nml_print(name,value,comment)  ! Check
@@ -231,7 +243,7 @@ contains
 
     !! Vectors 
 
-    subroutine nml_read_string_vector(filename,group,name,value,comment,init)
+    subroutine nml_read_string_vector(filename,group,name,value,comment,init,io)
 
         implicit none 
 
@@ -241,6 +253,7 @@ contains
         logical, optional :: init  
         logical :: init_var  
         character(len=256) :: value_str 
+        integer, intent(IN), optional :: io
 
         init_var = .FALSE. 
         if (present(init)) init_var = init 
@@ -248,7 +261,7 @@ contains
 
         ! First find parameter value as a string 
         value_str = ""
-        call nml_read_internal(filename,group,name,value_str,comment)
+        call nml_read_internal(filename,group,name,value_str,comment,io)
 
         if (value_str /= "") call string_to_vector(value_str,value)
 
@@ -258,7 +271,7 @@ contains
 
     end subroutine nml_read_string_vector 
 
-    subroutine nml_read_double_vector(filename,group,name,value,comment,init)
+    subroutine nml_read_double_vector(filename,group,name,value,comment,init,io)
 
         implicit none 
 
@@ -269,6 +282,7 @@ contains
         logical, optional :: init  
         logical :: init_var  
         integer :: q 
+        integer, intent(IN), optional :: io
 
         init_var = .FALSE. 
         if (present(init)) init_var = init 
@@ -276,7 +290,7 @@ contains
 
         ! First find parameter value as a string 
         value_str = ""
-        call nml_read_internal(filename,group,name,value_str,comment)
+        call nml_read_internal(filename,group,name,value_str,comment,io)
 
         if (value_str /= "") then
             call string_to_vector(value_str,value_str_vec)
@@ -294,7 +308,7 @@ contains
 
     end subroutine nml_read_double_vector 
 
-    subroutine nml_read_float_vector(filename,group,name,value,comment,init)
+    subroutine nml_read_float_vector(filename,group,name,value,comment,init,io)
 
         implicit none 
 
@@ -305,6 +319,7 @@ contains
         logical, optional :: init  
         logical :: init_var
         integer :: q 
+        integer, intent(IN), optional :: io
 
         init_var = .FALSE. 
         if (present(init)) init_var = init 
@@ -312,7 +327,7 @@ contains
 
         ! First find parameter value as a string 
         value_str = ""
-        call nml_read_internal(filename,group,name,value_str,comment)
+        call nml_read_internal(filename,group,name,value_str,comment,io)
 
         if (value_str /= "") then
             call string_to_vector(value_str,value_str_vec)
@@ -330,7 +345,7 @@ contains
 
     end subroutine nml_read_float_vector 
 
-    subroutine nml_read_integer_vector(filename,group,name,value,comment,init)
+    subroutine nml_read_integer_vector(filename,group,name,value,comment,init,io)
 
         implicit none 
 
@@ -341,6 +356,7 @@ contains
         logical, optional :: init  
         logical :: init_var 
         integer :: q 
+        integer, intent(IN), optional :: io
 
         init_var = .FALSE. 
         if (present(init)) init_var = init 
@@ -348,7 +364,7 @@ contains
 
         ! First find parameter value as a string 
         value_str = ""
-        call nml_read_internal(filename,group,name,value_str,comment)
+        call nml_read_internal(filename,group,name,value_str,comment,io)
 
         if (value_str /= "") then
             call string_to_vector(value_str,value_str_vec)
@@ -366,7 +382,7 @@ contains
 
     end subroutine nml_read_integer_vector
 
-    subroutine nml_read_logical_vector(filename,group,name,value,comment,init)
+    subroutine nml_read_logical_vector(filename,group,name,value,comment,init,io)
 
         implicit none 
 
@@ -377,6 +393,7 @@ contains
         logical, optional :: init  
         logical :: init_var 
         integer :: q 
+        integer, intent(IN), optional :: io
 
         init_var = .FALSE. 
         if (present(init)) init_var = init 
@@ -384,7 +401,7 @@ contains
 
         ! First find parameter value as a string 
         value_str = ""
-        call nml_read_internal(filename,group,name,value_str,comment)
+        call nml_read_internal(filename,group,name,value_str,comment,io)
 
         if (value_str /= "") then
             call string_to_vector(value_str,value_str_vec)
