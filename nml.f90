@@ -66,6 +66,7 @@ contains
               stop 
           end if 
         else
+          rewind(unit = io)  ! make sure we read from the beginning
           io_loc = io
         endif
 
