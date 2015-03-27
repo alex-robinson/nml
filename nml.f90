@@ -1,5 +1,4 @@
 
-
 module nml 
 
 
@@ -449,18 +448,24 @@ contains
 
     ! This is the basic routine for printing a parameter to a formatted line
     ! All other interfaces use this routine after converting to a string.
-    subroutine nml_print_string(name,value,comment,io)
+    subroutine nml_print_string(name,value,comment,io,no_quotes)
 
         implicit none 
         character(len=*) :: name, value 
         character(len=*), optional :: comment 
         integer, optional :: io 
         integer :: io_val 
+        logical, optional :: no_quotes
+        logical :: no_quotes_loc
         character(len=1000) :: line
         character(len=500)  :: comment1 
 
         io_val = 6 
         if (present(io)) io_val = io 
+
+        no_quotes_loc = .false.
+        if (present(no_quotes)) no_quotes_loc = no_quotes
+        if (.not.no_quotes_loc) value = '"'//trim(value)//'"'
 
         comment1 = "" 
         if (present(comment)) comment1 = "   "//trim(comment)
@@ -482,7 +487,7 @@ contains
         character(len=500) :: value_str  
 
         write(value_str,*) value 
-        call nml_print_string(name,value_str,comment,io)
+        call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
@@ -514,7 +519,7 @@ contains
         character(len=500) :: value_str  
 
         write(value_str,*) value 
-        call nml_print_string(name,value_str,comment,io)
+        call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
@@ -531,7 +536,7 @@ contains
 
         value_str = "F"
         if (value) value_str = "T" 
-        call nml_print_string(name,value_str,comment,io)
+        call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
@@ -549,12 +554,12 @@ contains
         character(len=500) :: value_str  
         integer :: q 
 
-        value_str = value(1)
+        value_str = '"'//trim(value(1))//'"'
         do q = 2, size(value)
-            write(value_str,*) trim(value_str)//" "//trim(value(q))
+            write(value_str,*) trim(value_str)//" "//'"'//trim(value(q))//'"'
         end do 
 
-        call nml_print_string(name,value_str,comment,io)
+        call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
@@ -575,7 +580,7 @@ contains
             write(value_str,"(a,g12.3)") trim(value_str)//" ",value(q)
         end do 
 
-        call nml_print_string(name,value_str,comment,io)
+        call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
@@ -596,7 +601,7 @@ contains
             write(value_str,"(a,g12.3)") trim(value_str)//" ",value(q)
         end do 
 
-        call nml_print_string(name,value_str,comment,io)
+        call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
@@ -617,7 +622,7 @@ contains
             write(value_str,"(a,i12)") trim(value_str)//" ",value(q)
         end do 
 
-        call nml_print_string(name,value_str,comment,io)
+        call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
@@ -642,7 +647,7 @@ contains
             end if 
         end do 
 
-        call nml_print_string(name,value_str,comment,io)
+        call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
