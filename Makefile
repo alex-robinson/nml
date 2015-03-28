@@ -6,7 +6,7 @@ usage:
 	@echo ""
 	@echo "    * USAGE * "
 	@echo ""
-	@echo " make insol      : compiles the main program test_insol.x"
+	@echo " make nml      : compile namelist"
 	@echo " make clean      : cleans object files"
 	@echo ""
 
