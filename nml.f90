@@ -710,9 +710,9 @@ contains
         tmpstr = trim(adjustl(string))
         
         select case(trim(tmpstr))
-            case("T","True","TRUE","true",".TRUE.")
+            case("T","True","TRUE","true",".TRUE.", ".true.")
                 value = .TRUE. 
-            case("F","False","FALSE","false",".FALSE.")
+            case("F","False","FALSE","false",".FALSE.", ".false.")
                 value = .FALSE. 
             case DEFAULT
                 write(*,*) "nml:: Error reading logical parameter."
