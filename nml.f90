@@ -451,26 +451,28 @@ contains
     subroutine nml_print_string(name,value,comment,io,no_quotes)
 
         implicit none 
-        character(len=*) :: name, value 
-        character(len=*), optional :: comment 
-        integer, optional :: io 
+        character(len=*), intent(in) :: name, value 
+        character(len=*), intent(in), optional :: comment 
+        integer, intent(in), optional :: io 
         integer :: io_val 
-        logical, optional :: no_quotes
+        logical, intent(in), optional :: no_quotes
         logical :: no_quotes_loc
         character(len=1000) :: line
         character(len=500)  :: comment1 
+        character(len=len(value))  :: val_repr
 
         io_val = 6 
         if (present(io)) io_val = io 
+        val_repr = value
 
         no_quotes_loc = .false.
         if (present(no_quotes)) no_quotes_loc = no_quotes
-        if (.not.no_quotes_loc) value = '"'//trim(value)//'"'
+        if (.not.no_quotes_loc) val_repr = '"'//trim(value)//'"'
 
         comment1 = "" 
         if (present(comment)) comment1 = "   "//trim(comment)
 
-        write(line,"(a)") "    "//trim(name)//" = "//trim(value)//trim(comment1)
+        write(line,"(a)") "    "//trim(name)//" = "//trim(val_repr)//trim(comment1)
         write(io_val,*) trim(line)
 
         return 
