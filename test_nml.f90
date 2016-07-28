@@ -34,6 +34,7 @@ program test
     open(io,file=trim(filename),status="old")
 
     ! Read parameters from file
+    call nml_set_verbose(.TRUE.)
     write(*,*) "group1 ==========="
     call nml_read(filename,"group1","string1",group1%string1)
     call nml_read(filename,"group1","string2",group1%string2)
@@ -42,6 +43,7 @@ program test
     call nml_read(filename,"group1","integer1",group1%integer1)
     call nml_read(filename,"group1","integer2",group1%integer2)
     
+    call nml_set_verbose(.FALSE.)
     write(*,*) "group2 ==========="
     call nml_read(filename,"group2","string1",group2%string1)
     call nml_read(filename,"group2","string2",group2%string2)

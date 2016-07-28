@@ -1,11 +1,10 @@
 
-
 module nml 
 
 
     implicit none 
 
-
+    logical :: VERBOSE = .FALSE. !!  should freshly read namelist be printed to screen?
 
     interface nml_read 
         module procedure nml_read_string, nml_read_double, nml_read_float 
@@ -30,9 +29,23 @@ module nml
     private 
     public :: nml_read, nml_write 
     public :: nml_print 
-
+    public :: nml_set_verbose
 
 contains
+
+    subroutine nml_set_verbose(verb)
+
+        implicit none 
+
+        logical :: verb 
+
+        VERBOSE = verb 
+
+        write(*,*) "nml_set_verbose:: ", VERBOSE 
+
+        return 
+
+    end subroutine nml_set_verbose 
 
     ! =============================================================
     !
@@ -54,22 +67,17 @@ contains
         integer :: io, file_unit 
         integer :: iostat, l, ltype 
         character(len=1000) :: line, name1, value1, comment1 
-
-        logical :: ingroup  
-
-        ! Define a generic io connection number
-        io = 188
+        logical :: ingroup
 
         ! Open the nml filename to be read, or get file units if already open
         inquire(file=trim(filename),NUMBER=file_unit)
         if (file_unit .eq. -1) then
             ! Open a connection to the file 
-            open(io,file=trim(filename),status="old",iostat=iostat)
+            open(unit=newunit(io),file=trim(filename),status="old",iostat=iostat)
             if (iostat /= 0) then 
                 write(*,*) "nml:: namelist file could not be opened: "//trim(filename)
                 stop 
             end if
-
         else 
             ! File is already open, rewind it
             io = file_unit 
@@ -102,7 +110,10 @@ contains
             end if 
         end do 
 
-        close(io)
+        if (file_unit .eq. -1) then
+            ! Close the file that was opened here
+            close(io)
+        endif
 
         return 
 
@@ -129,7 +140,7 @@ contains
 
         if (value_str /= "") value = trim(value_str)
 
-        call nml_print(name,value,comment)  ! Check
+        if (VERBOSE) call nml_print(name,value,comment)  ! Check
 
         return 
 
@@ -155,7 +166,7 @@ contains
         call nml_read_internal(filename,group,name,value_str,comment)
         if (value_str /= "") value = string_to_double(value_str)
 
-        call nml_print(name,value,comment)  ! Check
+        if (VERBOSE) call nml_print(name,value,comment)  ! Check
 
         return 
 
@@ -181,7 +192,7 @@ contains
         call nml_read_internal(filename,group,name,value_str,comment)
         if (value_str /= "") value = real(string_to_double(value_str))
 
-        call nml_print(name,value,comment)  ! Check
+        if (VERBOSE) call nml_print(name,value,comment)  ! Check
 
         return 
 
@@ -210,7 +221,7 @@ contains
             value = nint(string_to_double(value_str))
         end if 
 
-        call nml_print(name,value,comment)  ! Check
+        if (VERBOSE) call nml_print(name,value,comment)  ! Check
 
         return 
 
@@ -236,7 +247,7 @@ contains
         call nml_read_internal(filename,group,name,value_str,comment)
         if (value_str /= "") value = string_to_logical(value_str)
 
-        call nml_print(name,value,comment)  ! Check
+        if (VERBOSE) call nml_print(name,value,comment)  ! Check
 
         return 
 
@@ -265,7 +276,7 @@ contains
 
         if (value_str /= "") call string_to_vector(value_str,value)
 
-        call nml_print(name,value,comment)  ! Check
+        if (VERBOSE) call nml_print(name,value,comment)  ! Check
 
         return 
 
@@ -301,7 +312,7 @@ contains
             end do 
         end if 
 
-        call nml_print(name,value,comment)  ! Check
+        if (VERBOSE) call nml_print(name,value,comment)  ! Check
 
         return 
 
@@ -337,7 +348,7 @@ contains
             end do 
         end if 
 
-        call nml_print(name,value,comment)  ! Check
+        if (VERBOSE) call nml_print(name,value,comment)  ! Check
 
         return 
 
@@ -373,7 +384,7 @@ contains
             end do 
         end if 
 
-        call nml_print(name,value,comment)  ! Check
+        if (VERBOSE) call nml_print(name,value,comment)  ! Check
 
         return 
 
@@ -409,7 +420,7 @@ contains
             end do 
         end if 
 
-        call nml_print(name,value,comment)  ! Check
+        if (VERBOSE) call nml_print(name,value,comment)  ! Check
 
         return 
 
@@ -444,23 +455,31 @@ contains
 
     ! This is the basic routine for printing a parameter to a formatted line
     ! All other interfaces use this routine after converting to a string.
-    subroutine nml_print_string(name,value,comment,io)
+    subroutine nml_print_string(name,value,comment,io,no_quotes)
 
         implicit none 
-        character(len=*) :: name, value 
-        character(len=*), optional :: comment 
-        integer, optional :: io 
+        character(len=*), intent(in) :: name, value 
+        character(len=*), intent(in), optional :: comment 
+        integer, intent(in), optional :: io 
         integer :: io_val 
+        logical, intent(in), optional :: no_quotes
+        logical :: no_quotes_loc
         character(len=1000) :: line
         character(len=500)  :: comment1 
+        character(len=len(value))  :: val_repr
 
         io_val = 6 
         if (present(io)) io_val = io 
+        val_repr = value
+
+        no_quotes_loc = .false.
+        if (present(no_quotes)) no_quotes_loc = no_quotes
+        if (.not.no_quotes_loc) val_repr = '"'//trim(value)//'"'
 
         comment1 = "" 
         if (present(comment)) comment1 = "   "//trim(comment)
 
-        write(line,"(a)") "    "//trim(name)//" = "//trim(value)//trim(comment1)
+        write(line,"(a)") "    "//trim(name)//" = "//trim(val_repr)//trim(comment1)
         write(io_val,*) trim(line)
 
         return 
@@ -477,7 +496,7 @@ contains
         character(len=500) :: value_str  
 
         write(value_str,*) value 
-        call nml_print_string(name,value_str,comment,io)
+        if (VERBOSE) call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
@@ -493,7 +512,7 @@ contains
         character(len=500) :: value_str  
 
         write(value_str,*) value 
-        call nml_print_string(name,value_str,comment,io)
+        if (VERBOSE) call nml_print_string(name,value_str,comment,io)
 
         return 
 
@@ -509,7 +528,7 @@ contains
         character(len=500) :: value_str  
 
         write(value_str,*) value 
-        call nml_print_string(name,value_str,comment,io)
+        if (VERBOSE) call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
@@ -526,7 +545,7 @@ contains
 
         value_str = "F"
         if (value) value_str = "T" 
-        call nml_print_string(name,value_str,comment,io)
+        if (VERBOSE) call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
@@ -544,12 +563,12 @@ contains
         character(len=500) :: value_str  
         integer :: q 
 
-        value_str = value(1)
+        value_str = '"'//trim(value(1))//'"'
         do q = 2, size(value)
-            write(value_str,*) trim(value_str)//" "//trim(value(q))
+            write(value_str,*) trim(value_str)//" "//'"'//trim(value(q))//'"'
         end do 
 
-        call nml_print_string(name,value_str,comment,io)
+        if (VERBOSE) call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
@@ -570,7 +589,7 @@ contains
             write(value_str,"(a,g12.3)") trim(value_str)//" ",value(q)
         end do 
 
-        call nml_print_string(name,value_str,comment,io)
+        if (VERBOSE) call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
@@ -591,7 +610,7 @@ contains
             write(value_str,"(a,g12.3)") trim(value_str)//" ",value(q)
         end do 
 
-        call nml_print_string(name,value_str,comment,io)
+        if (VERBOSE) call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
@@ -612,7 +631,7 @@ contains
             write(value_str,"(a,i12)") trim(value_str)//" ",value(q)
         end do 
 
-        call nml_print_string(name,value_str,comment,io)
+        if (VERBOSE) call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
@@ -637,7 +656,7 @@ contains
             end if 
         end do 
 
-        call nml_print_string(name,value_str,comment,io)
+        if (VERBOSE) call nml_print_string(name,value_str,comment,io,no_quotes=.true.)
 
         return 
 
@@ -698,9 +717,9 @@ contains
         tmpstr = trim(adjustl(string))
         
         select case(trim(tmpstr))
-            case("T","True","TRUE","true",".TRUE.")
+            case("T","True","TRUE","true",".TRUE.", ".true.")
                 value = .TRUE. 
-            case("F","False","FALSE","false",".FALSE.")
+            case("F","False","FALSE","false",".FALSE.", ".false.")
                 value = .FALSE. 
             case DEFAULT
                 write(*,*) "nml:: Error reading logical parameter."
@@ -863,6 +882,43 @@ contains
 
     end subroutine remove_quotes_comma
 
+
+
+    integer function newunit(unit)
+        ! This is a simple function to search for an available unit.
+        ! LUN_MIN and LUN_MAX define the range of possible LUNs to check.
+        ! The UNIT value is returned by the function, and also by the optional
+        ! argument. This allows the function to be used directly in an OPEN
+        ! statement, and optionally save the result in a local variable.
+        ! If no units are available, -1 is returned.
+        ! Modified from: http://fortranwiki.org/fortran/show/newunit
+
+        implicit none 
+
+        integer, intent(out), optional :: unit
+
+        ! Local variables
+        integer, parameter :: LUN_MIN=10, LUN_MAX=1000
+        logical :: opened
+        integer :: lun
+
+        newunit=-1
+
+        ! Search for new unit
+        do lun=LUN_MIN,LUN_MAX
+            inquire(unit=lun,opened=opened)
+            if (.not. opened) then
+                newunit=lun
+                exit
+            end if
+        end do
+
+        ! Assign new unit if desired
+        if (present(unit)) unit=newunit
+
+        return 
+
+    end function newunit
 
 end module nml 
 
