@@ -25,7 +25,13 @@ program test
     type(pars_group2) :: group2 
     character(len=256) :: filename 
 
+    integer :: io 
+
     filename = "namelist.nml" 
+
+    ! Open the file first to make sure this works
+    io = 16 
+    open(io,file=trim(filename),status="old")
 
     ! Read parameters from file
     write(*,*) "group1 ==========="

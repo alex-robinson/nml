@@ -51,19 +51,32 @@ contains
         character(len=*), intent(IN)    :: filename, group, name 
         character(len=*), intent(INOUT), optional :: comment   
 
-        integer, parameter :: io = 188
+        integer :: io, file_unit 
         integer :: iostat, l, ltype 
         character(len=1000) :: line, name1, value1, comment1 
 
         logical :: ingroup  
 
-        ! Open the nml filename to be read 
-        open(io,file=filename,status="old",iostat=iostat)
-        if (iostat /= 0) then 
-            write(*,*) "nml:: namelist file could not be opened: "//trim(filename)
-            stop 
-        end if 
+        ! Define a generic io connection number
+        io = 188
 
+        ! Open the nml filename to be read, or get file units if already open
+        inquire(file=trim(filename),NUMBER=file_unit)
+        if (file_unit .eq. -1) then
+            ! Open a connection to the file 
+            open(io,file=trim(filename),status="old",iostat=iostat)
+            if (iostat /= 0) then 
+                write(*,*) "nml:: namelist file could not be opened: "//trim(filename)
+                stop 
+            end if
+
+        else 
+            ! File is already open, rewind it
+            io = file_unit 
+            rewind(io)
+        end if 
+ 
+        
         ingroup = .FALSE. 
 
         do l = 1, 5000
